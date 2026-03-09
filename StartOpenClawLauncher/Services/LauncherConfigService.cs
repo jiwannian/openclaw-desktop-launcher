@@ -1,3 +1,4 @@
+﻿using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using StartOpenClawLauncher.Models;
@@ -18,7 +19,7 @@ public sealed class LauncherConfigService
     {
         if (!File.Exists(_configPath))
         {
-            var defaults = new LauncherSettings();
+            var defaults = CreateDefaultSettings();
             Save(defaults);
             return defaults;
         }
@@ -26,11 +27,11 @@ public sealed class LauncherConfigService
         try
         {
             var json = File.ReadAllText(_configPath);
-            return JsonSerializer.Deserialize<LauncherSettings>(json, JsonOptions) ?? new LauncherSettings();
+            return JsonSerializer.Deserialize<LauncherSettings>(json, JsonOptions) ?? CreateDefaultSettings();
         }
         catch
         {
-            var fallback = new LauncherSettings();
+            var fallback = CreateDefaultSettings();
             Save(fallback);
             return fallback;
         }
@@ -40,5 +41,39 @@ public sealed class LauncherConfigService
     {
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(_configPath, json);
+    }
+
+    private static LauncherSettings CreateDefaultSettings()
+    {
+        var settings = new LauncherSettings
+        {
+            LanguageCode = DetectSystemLanguageCode()
+        };
+
+        return settings;
+    }
+
+    private static string DetectSystemLanguageCode()
+    {
+        var languageName = CultureInfo.CurrentUICulture.Name;
+        var isoCode = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+        if (languageName.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+        {
+            return "zh-CN";
+        }
+
+        return isoCode switch
+        {
+            "hi" => "hi",
+            "es" => "es",
+            "ar" => "ar",
+            "ru" => "ru",
+            "pt" => "pt",
+            "fr" => "fr",
+            "it" => "it",
+            "ja" => "ja",
+            _ => "en"
+        };
     }
 }
